@@ -16,6 +16,9 @@
     <EmbeddedResource Remove="Runner.cs\**" />
     <None Remove="ClickHouseTestsBase.cs\**" />
     <None Remove="Runner.cs\**" />
+	<None Update="clickHouse.dbconfig" Condition="Exists('clickHouse.dbconfig')">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.12.1" />
@@ -24,8 +27,6 @@
     <ProjectReference Include="..\Octonica.ClickHouseClient\Octonica.ClickHouseClient.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-    </EmbeddedResource>
+    <Folder Include="Properties\" />
   </ItemGroup>
 </Project>

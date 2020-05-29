@@ -10,40 +10,50 @@ using System.Threading.Tasks;
 
 namespace Octonica.ClickHouseClient.Benchmark
 {
+    [MemoryDiagnoser]
     [MarkdownExporter, RPlotExporter]
-    
-    [SimpleJob(RunStrategy.ColdStart, 
+
+    [SimpleJob(RunStrategy.ColdStart,
         launchCount: 1,
-        warmupCount: 2, 
+        warmupCount: 1,
         targetCount: 20,
-        id: "InsertAndRead")]
-    public class InsertBenchmark: ClickHouseBaseConnection
+        id: "Read data from table")]
+    public class ReadTableBenchmark: ClickHouseBaseConnection
 	{
 
         private readonly string TableName = "insert_benchmark";
         private ClickHouseConnection connection;
 
-        public InsertBenchmark()
-        {
-            connection = OpenConnection();
-        }
-
-        [Params(100, 10000, 100000)]
+        [Params(10000, 100000, 1000000)]
         public int valuesCount { get; set; }
 
         private IEnumerable<int> idEnumerable { get; set; }
         private IEnumerable<string> strEnumerable { get; set; }
+
+        public ReadTableBenchmark()
+        {
+            connection = OpenConnection();
+        }
 
         [GlobalSetup]
         public void GlobalSetup()
         {
 
             GlobalCleanup();
+
             var cmd = connection.CreateCommand($"CREATE TABLE {TableName}(id Int32, str Nullable(String)) ENGINE=Memory");
             cmd.ExecuteNonQuery();
 
             idEnumerable = Enumerable.Range(0, valuesCount);
             strEnumerable = idEnumerable.Select( x => x.ToString());
+
+            //Fill Table
+            using (var writer = connection.CreateColumnWriter($"INSERT INTO {TableName}(id, str) VALUES"))
+            {
+                var writeObject = new object[] { idEnumerable, strEnumerable };
+                writer.WriteTable(writeObject, valuesCount);
+                writer.EndWrite();
+            }
         }
 
         [GlobalCleanup]
@@ -51,18 +61,6 @@ namespace Octonica.ClickHouseClient.Benchmark
         {
             var cmd = connection.CreateCommand($"DROP TABLE IF EXISTS {TableName}");
             cmd.ExecuteNonQuery();
-        }
-
-
-        [Benchmark]
-        public void InsertValues() {
-
-            using (var writer = connection.CreateColumnWriter($"INSERT INTO {TableName}(id, str) VALUES"))
-            {
-                var writeObject = new object[] { idEnumerable, strEnumerable };
-                writer.WriteTable(writeObject, valuesCount);
-                writer.EndWrite();
-            }
         }
 
         [Benchmark]
@@ -78,7 +76,7 @@ namespace Octonica.ClickHouseClient.Benchmark
                     var id = reader.GetInt32(0);
                     var str = reader.GetString(1, null);
 
-                    ++count;
+                    count++;
                 }
             }
         }

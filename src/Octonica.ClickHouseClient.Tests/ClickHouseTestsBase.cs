@@ -25,7 +25,7 @@ namespace Octonica.ClickHouseClient.Tests
 {
     public abstract class ClickHouseTestsBase
     {
-        private const string ConfigExample = "host=domain.com; port=9000; user=default; password=pw";
+        private const string ConfigExample = "host=domain.com; port=9000; user=default;";
 
         private ClickHouseConnectionSettings? _settings;
 
@@ -65,11 +65,15 @@ namespace Octonica.ClickHouseClient.Tests
         private ClickHouseConnectionStringBuilder ReadConfigFile()
         {
 
-            var configEnv = Environment.GetEnvironmentVariable("dbconfig", EnvironmentVariableTarget.User);
+            string configPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..\\..\\..\\"));
 
-            Assert.True(configEnv != null, $"Need user enviroment \"dbconfig\" with params {ConfigExample}");
+            configPath += "clickHouse.dbconfig";
 
-            ClickHouseConnectionStringBuilder builder = new ClickHouseConnectionStringBuilder(configEnv);
+            Assert.True(File.Exists(configPath), "Need database connection config: " + configPath + " \t" + ConfigExample);
+
+            string configText = File.ReadAllText(configPath);
+
+            ClickHouseConnectionStringBuilder builder = new ClickHouseConnectionStringBuilder(configText);
 
             Assert.True(builder.Host != null, "Example \t" + ConfigExample);
 

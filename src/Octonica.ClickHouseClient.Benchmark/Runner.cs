@@ -26,7 +26,8 @@ namespace Octonica.ClickHouseClient.Benchmark
 	{
         public static void Main(string[] args)
         {
-            BenchmarkRunner.Run<InsertBenchmark>();
+            BenchmarkRunner.Run<InsertTableBenchmark>();
+            BenchmarkRunner.Run<ReadTableBenchmark>();
         }
     }
 }

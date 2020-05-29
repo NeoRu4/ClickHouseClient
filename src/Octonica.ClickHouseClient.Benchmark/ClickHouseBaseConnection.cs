@@ -15,6 +15,7 @@
  */
 #endregion
 
+using Octonica.ClickHouseClient.Exceptions;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -26,7 +27,7 @@ namespace Octonica.ClickHouseClient.Benchmark
 {
     public class ClickHouseBaseConnection
     {
-        private const string ConfigExample = "host=domain.com; port=9000; user=default; password=pw";
+        private const string ConfigExample = "host=domain.com; port=9000; user=default; password=pw; compress=false;";
 
         private ClickHouseConnectionSettings? _settings;
 
@@ -36,9 +37,13 @@ namespace Octonica.ClickHouseClient.Benchmark
             {
                 return _settings;
             }
+            var config = this.ReadConfigFile();
 
-            _settings = this.ReadConfigFile().BuildSettings();
+            // Compress has bugs with big batch data
+            config.Compress = false;
 
+            _settings = config.BuildSettings();
+            
             return _settings;
         }
 
@@ -65,18 +70,25 @@ namespace Octonica.ClickHouseClient.Benchmark
 
         private ClickHouseConnectionStringBuilder ReadConfigFile()
         {
+            //each benchmark makes new project path, it config file needs to be with Runner path
+            string configPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../clickHouse.dbconfig"));
 
-            var configEnv = Environment.GetEnvironmentVariable("dbconfig", EnvironmentVariableTarget.User);
-
-            if (configEnv == null)
+            if (!File.Exists(configPath))
             {
-                throw new Exception($"Need user enviroment \"dbconfig\" with params {ConfigExample}.");
+                throw new ClickHouseException(ClickHouseErrorCodes.InvalidConnectionState, $"Need database connection config: {configPath} \t {ConfigExample}");
             }
 
-            ClickHouseConnectionStringBuilder builder = new ClickHouseConnectionStringBuilder(configEnv);
+            string configText = File.ReadAllText(configPath);
+
+            ClickHouseConnectionStringBuilder builder = new ClickHouseConnectionStringBuilder(configText);
+            if (builder.Host == null)
+            {
+                throw new ClickHouseException(ClickHouseErrorCodes.InvalidConnectionState, $"Example \t {ConfigExample}");
+            }
 
             return builder;
         }
+
     }
 
 }
